@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HJ Store - Painel Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0A0A0F;--surface:#13131A;--surface2:#1C1C27;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--accent:#7C5CFC;--accent2:#B49AFF;--gold:#F5C542;--text:#F0EFF8;--muted:#8B8A9E;--green:#2ECC71;--red:#E74C3C;--fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px;line-height:1.6;}
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:2.5rem;width:100%;max-width:380px;}
+.login-box h1{font-family:var(--fd);font-size:1.5rem;font-weight:800;margin-bottom:.5rem;}
+.login-box p{font-size:13px;color:var(--muted);margin-bottom:2rem;}
+.field{margin-bottom:1rem;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.field input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:14px;padding:10px 14px;border-radius:10px;}
+.field input:focus{outline:none;border-color:var(--accent);}
+.btn{font-family:var(--fd);font-weight:700;font-size:14px;padding:11px 20px;border-radius:10px;border:none;cursor:pointer;transition:all .2s;width:100%;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#9070ff;}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.btn-ghost:hover{background:var(--surface2);}
+.btn-sm{padding:6px 12px;font-size:12px;width:auto;}
+.btn-green{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3);}
+.btn-red{background:rgba(231,76,60,.15);color:var(--red);border:1px solid rgba(231,76,60,.3);}
+.btn-gold{background:var(--gold);color:#1a1200;}
+
+#admin-screen{display:none;min-height:100vh;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;}
+.logo{font-family:var(--fd);font-weight:800;font-size:16px;}
+.logo span{color:var(--accent2);}
+
+.tabs{display:flex;gap:4px;padding:.75rem 2rem 0;border-bottom:1px solid var(--border);background:var(--surface);}
+.tab{font-family:var(--fd);font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--muted);cursor:pointer;}
+.tab.active{background:var(--bg);color:var(--text);border:1px solid var(--border2);border-bottom:1px solid var(--bg);}
+.panel{display:none;padding:2rem;}
+.panel.active{display:block;}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;text-align:center;}
+.stat-n{font-family:var(--fd);font-size:1.8rem;font-weight:800;}
+.stat-l{font-size:11px;color:var(--muted);margin-top:2px;}
+
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.thead{display:grid;grid-template-columns:90px 1fr 130px 90px 110px;padding:10px 16px;background:var(--surface2);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+.trow{display:grid;grid-template-columns:90px 1fr 130px 90px 110px;padding:12px 16px;border-top:1px solid var(--border);align-items:center;font-size:13px;}
+.trow:hover{background:var(--surface2);}
+.ticket{font-family:var(--fd);font-weight:700;color:var(--accent2);}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;}
+.badge-ok{background:rgba(46,204,113,.12);color:var(--green);}
+.badge-pend{background:rgba(245,197,66,.12);color:var(--gold);}
+.badge-rej{background:rgba(231,76,60,.12);color:var(--red);}
+
+.search-bar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;}
+.search-bar input{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:13px;padding:9px 14px;border-radius:10px;}
+.search-bar select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:13px;padding:9px 14px;border-radius:10px;}
+
+.sorteio-box{background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(245,197,66,.06));border:1px solid rgba(124,92,252,.25);border-radius:20px;padding:2rem;margin-bottom:1.5rem;text-align:center;}
+.drum{width:140px;height:140px;border-radius:50%;background:var(--surface2);border:2px solid var(--accent);margin:0 auto 1.5rem;display:flex;align-items:center;justify-content:center;}
+.drum-num{font-family:var(--fd);font-size:2.5rem;font-weight:800;color:var(--accent2);}
+.drum.spin .drum-num{animation:spinnum .08s linear infinite;}
+@keyframes spinnum{0%{opacity:1;transform:translateY(0)}50%{opacity:.3;transform:translateY(-6px)}100%{opacity:1;transform:translateY(0)}}
+
+.premio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:1.25rem;}
+.premio-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;}
+.premio-item.sel{border-color:var(--gold);background:rgba(245,197,66,.06);}
+
+.hist-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);font-size:13px;}
+.hist-row:first-child{border-top:none;}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:1rem;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:2rem;width:100%;max-width:480px;}
+.modal h3{font-family:var(--fd);font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;}
+.modal .field input,.modal .field select,.modal .field textarea{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:14px;padding:10px 14px;border-radius:8px;width:100%;}
+.modal .field textarea{height:80px;resize:none;}
+
+.resultado-card{display:none;background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:2rem;text-align:center;margin-top:1rem;}
+
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:.75rem 1.25rem;font-size:13px;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>HJ <span style="color:var(--accent2)">Admin</span></h1>
+    <p>Painel de gestão do HJ Store. Acesso restrito.</p>
+    <div class="field"><label>E-mail</label><input type="email" id="l-email" placeholder="seu@email.com"/></div>
+    <div class="field"><label>Senha</label><input type="password" id="l-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"/></div>
+    <button class="btn btn-primary" onclick="login()">Entrar</button>
+    <div style="margin-top:1rem;font-size:12px;color:var(--muted);text-align:center;">Use o e-mail e senha cadastrados no Supabase Auth</div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen">
+  <header>
+    <div class="logo">HJ <span>Admin</span></div>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">Sair</button>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('participantes',this)">Participantes</button>
+    <button class="tab" onclick="switchTab('sorteio',this)">Sorteio</button>
+    <button class="tab" onclick="switchTab('afiliados',this)">Afiliados</button>
+  </div>
+
+  <!-- PARTICIPANTES -->
+  <div class="panel active" id="panel-participantes">
+    <div class="stats">
+      <div class="stat-card"><div class="stat-n" id="s-total" style="color:var(--accent2)">0</div><div class="stat-l">Total</div></div>
+      <div class="stat-card"><div class="stat-n" id="s-valid" style="color:var(--green)">0</div><div class="stat-l">Validados</div></div>
+      <div class="stat-card"><div class="stat-n" id="s-pend" style="color:var(--gold)">0</div><div class="stat-l">Pendentes</div></div>
+      <div class="stat-card"><div class="stat-n" id="s-rej" style="color:var(--red)">0</div><div class="stat-l">Rejeitados</div></div>
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar por nome ou ticket..." id="busca" oninput="renderPart()"/>
+      <select id="filtro-status" onchange="renderPart()">
+        <option value="all">Todos os status</option>
+        <option value="pendente">Pendentes</option>
+        <option value="validado">Validados</option>
+        <option value="rejeitado">Rejeitados</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <div class="thead"><div>Ticket</div><div>Participante</div><div>Produto</div><div>Status</div><div>Ações</div></div>
+      <div id="lista-part"></div>
+    </div>
+  </div>
+
+  <!-- SORTEIO -->
+  <div class="panel" id="panel-sorteio">
+    <div class="sorteio-box">
+      <div style="font-family:var(--fd);font-size:.8rem;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;">Sorteio do mês</div>
+      <div class="drum" id="drum"><div class="drum-num" id="drum-num">?</div></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;" id="s-info">Carregando...</div>
+      <button class="btn btn-gold" onclick="sortear()" style="width:auto;padding:12px 32px;">Realizar sorteio</button>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <div style="font-family:var(--fd);font-size:14px;font-weight:700;margin-bottom:.75rem;">Prêmio deste mês</div>
+      <div class="premio-grid" id="premio-grid"></div>
+    </div>
+
+    <div class="resultado-card" id="resultado-card">
+      <div style="font-size:2rem;margin-bottom:.5rem;">🎊</div>
+      <div style="font-family:var(--fd);font-size:1.2rem;font-weight:800;margin-bottom:.25rem;">Vencedor do mês!</div>
+      <div style="font-family:var(--fd);font-size:3rem;font-weight:800;color:var(--gold);margin:.5rem 0;" id="r-ticket"></div>
+      <div style="font-size:14px;margin-bottom:.5rem;" id="r-nome"></div>
+      <div style="font-size:13px;color:var(--accent2);" id="r-premio"></div>
+      <button class="btn btn-ghost btn-sm" onclick="copiarResultado()" style="margin-top:1rem;width:auto;padding:8px 20px;">Copiar para divulgar</button>
+    </div>
+
+    <div style="margin-top:1.5rem;">
+      <div style="font-family:var(--fd);font-size:14px;font-weight:700;margin-bottom:.75rem;">Histórico</div>
+      <div class="table-wrap" id="historico"><div style="padding:1.5rem;text-align:center;color:var(--muted);">Nenhum sorteio ainda.</div></div>
+    </div>
+  </div>
+
+  <!-- AFILIADOS -->
+  <div class="panel" id="panel-afiliados">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+      <button class="btn btn-primary btn-sm" onclick="openModalAff()">+ Novo produto</button>
+    </div>
+    <div class="table-wrap">
+      <div class="thead" style="grid-template-columns:60px 1fr 100px 80px 80px"><div>Emoji</div><div>Produto</div><div>Plataforma</div><div>Status</div><div>Ações</div></div>
+      <div id="lista-aff"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AFILIADO -->
+<div class="modal-bg" id="modal-aff">
+  <div class="modal">
+    <h3>Adicionar produto afiliado</h3>
+    <div class="field" style="margin-bottom:.75rem;"><label>Nome do produto</label><input type="text" id="a-nome"/></div>
+    <div class="field" style="margin-bottom:.75rem;"><label>Plataforma</label>
+      <select id="a-plat"><option value="hotmart">Hotmart</option><option value="ml">Mercado Livre</option><option value="monetizze">Monetizze</option><option value="amazon">Amazon</option></select>
+    </div>
+    <div class="field" style="margin-bottom:.75rem;"><label>Categoria</label><input type="text" id="a-cat" placeholder="Marketing, Saúde, Finanças..."/></div>
+    <div class="field" style="margin-bottom:.75rem;"><label>Copy de divulgação</label><textarea id="a-copy" placeholder="Texto do vendedor..."></textarea></div>
+    <div class="field" style="margin-bottom:.75rem;"><label>Link de afiliado</label><input type="text" id="a-link" placeholder="https://..."/></div>
+    <div class="field" style="margin-bottom:1.25rem;"><label>Emoji</label><input type="text" id="a-emoji" placeholder="📚" maxlength="2" style="width:70px;"/></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModalAff()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="salvarAff()">Salvar produto</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://chbracaeipqztoajmqta.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_owD2uVixe25f6N8XFBteuw_H2Q3Dtai';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let participantes = [];
+let premioSel = '';
+let historico = [];
+
+const PREMIOS = [
+  {id:'hjadv', label:'HJ ADV (1 ano)', emoji:'⚖️'},
+  {id:'hjpdv', label:'HJ PDV (1 ano)', emoji:'🛒'},
+  {id:'dom', label:'Dominância Invisível', emoji:'🧠'},
+  {id:'surpresa', label:'Produto surpresa', emoji:'🎁'},
+];
+
+function toast(msg, tipo='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  t.style.borderColor = tipo==='ok' ? 'rgba(46,204,113,.4)' : 'rgba(231,76,60,.4)';
+  setTimeout(()=>t.className='toast',3000);
+}
+
+// AUTH
+async function login() {
+  const email = document.getElementById('l-email').value.trim();
+  const senha = document.getElementById('l-senha').value;
+  const {error} = await db.auth.signInWithPassword({email, password:senha});
+  if(error) { toast('E-mail ou senha incorretos.','err'); return; }
+  entrar();
+}
+
+async function logout() {
+  await db.auth.signOut();
+  document.getElementById('admin-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+function entrar() {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('admin-screen').style.display='block';
+  carregarParticipantes();
+  renderPremios();
+  carregarHistorico();
+  carregarAfiliados();
+}
+
+db.auth.onAuthStateChange((event, session) => {
+  if(session) entrar();
+});
+
+// TABS
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// PARTICIPANTES
+async function carregarParticipantes() {
+  const {data} = await db.from('participantes').select('*').order('created_at',{ascending:false});
+  participantes = data || [];
+  renderPart();
+  atualizarStats();
+  atualizarInfoSorteio();
+}
+
+function atualizarStats() {
+  document.getElementById('s-total').textContent = participantes.length;
+  document.getElementById('s-valid').textContent = participantes.filter(p=>p.status==='validado').length;
+  document.getElementById('s-pend').textContent = participantes.filter(p=>p.status==='pendente').length;
+  document.getElementById('s-rej').textContent = participantes.filter(p=>p.status==='rejeitado').length;
+}
+
+function atualizarInfoSorteio() {
+  const v = participantes.filter(p=>p.status==='validado').length;
+  const el = document.getElementById('s-info');
+  if(el) el.textContent = v + ' participante(s) validado(s) concorrem';
+}
+
+function renderPart() {
+  const q = document.getElementById('busca').value.toLowerCase();
+  const fs = document.getElementById('filtro-status').value;
+  const lista = participantes.filter(p => {
+    const mq = p.nome.toLowerCase().includes(q) || p.ticket.includes(q);
+    const ms = fs==='all' || p.status===fs;
+    return mq && ms;
+  });
+  const el = document.getElementById('lista-part');
+  if(!lista.length){el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);">Nenhum resultado.</div>';return;}
+  el.innerHTML = lista.map(p=>`
+    <div class="trow">
+      <div class="ticket">${p.ticket}</div>
+      <div><div style="font-weight:500;">${p.nome}</div><div style="font-size:11px;color:var(--muted);">${p.whatsapp}</div></div>
+      <div style="font-size:12px;color:var(--muted);">${p.produto}</div>
+      <div><span class="badge ${p.status==='validado'?'badge-ok':p.status==='rejeitado'?'badge-rej':'badge-pend'}">${p.status}</span></div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        ${p.print_url?`<button class="btn btn-ghost btn-sm" onclick="verPrint('${p.print_url}')">Print</button>`:''}
+        ${p.status==='pendente'?`<button class="btn btn-green btn-sm" onclick="mudarStatus('${p.id}','validado')">✓</button><button class="btn btn-red btn-sm" onclick="mudarStatus('${p.id}','rejeitado')">✕</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+async function mudarStatus(id, status) {
+  const {error} = await db.from('participantes').update({status}).eq('id',id);
+  if(error){toast('Erro ao atualizar.','err');return;}
+  await carregarParticipantes();
+  toast('Status atualizado.');
+}
+
+async function verPrint(url) {
+  const {data} = db.storage.from('prints').getPublicUrl(url);
+  window.open(data.publicUrl,'_blank');
+}
+
+// SORTEIO
+function renderPremios() {
+  document.getElementById('premio-grid').innerHTML = PREMIOS.map(p=>`
+    <div class="premio-item ${premioSel===p.id?'sel':''}" onclick="selecionarPremio('${p.id}')">
+      <div>${p.emoji}</div>
+      <div style="font-size:13px;font-weight:600;">${p.label}</div>
+    </div>`).join('');
+}
+
+function selecionarPremio(id){premioSel=id;renderPremios();}
+
+async function sortear() {
+  const validos = participantes.filter(p=>p.status==='validado');
+  if(!validos.length){toast('Nenhum participante validado.','err');return;}
+  if(!premioSel){toast('Selecione o prêmio do mês.','err');return;}
+  const drum = document.getElementById('drum');
+  const drumNum = document.getElementById('drum-num');
+  drum.classList.add('spin');
+  let t=0;
+  const iv = setInterval(()=>{
+    const r=validos[Math.floor(Math.random()*validos.length)];
+    drumNum.textContent=r.ticket;
+    t+=80;
+    if(t>=2400){
+      clearInterval(iv);
+      drum.classList.remove('spin');
+      const v=validos[Math.floor(Math.random()*validos.length)];
+      const premio=PREMIOS.find(p=>p.id===premioSel);
+      drumNum.textContent=v.ticket;
+      document.getElementById('r-ticket').textContent=v.ticket;
+      document.getElementById('r-nome').textContent=v.nome+' · '+v.whatsapp;
+      document.getElementById('r-premio').textContent='🎁 Prêmio: '+premio.emoji+' '+premio.label;
+      document.getElementById('resultado-card').style.display='block';
+      salvarSorteio(v, premio.label);
+    }
+  },80);
+}
+
+async function salvarSorteio(vencedor, premio) {
+  const mes = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  await db.from('sorteios').insert({mes, ticket_vencedor:vencedor.ticket, nome_vencedor:vencedor.nome, premio});
+  carregarHistorico();
+}
+
+async function carregarHistorico() {
+  const {data} = await db.from('sorteios').select('*').order('created_at',{ascending:false});
+  const el = document.getElementById('historico');
+  if(!data||!data.length){el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);">Nenhum sorteio ainda.</div>';return;}
+  el.innerHTML = data.map(h=>`
+    <div class="hist-row">
+      <div><div style="font-size:11px;color:var(--muted);text-transform:capitalize;">${h.mes}</div><div style="font-weight:500;">${h.nome_vencedor}</div></div>
+      <div style="text-align:right;"><div style="font-family:var(--fd);font-weight:700;color:var(--gold);font-size:15px;">${h.ticket_vencedor}</div><div style="font-size:11px;color:var(--muted);">${h.premio}</div></div>
+    </div>`).join('');
+}
+
+function copiarResultado() {
+  const ticket=document.getElementById('r-ticket').textContent;
+  const nome=document.getElementById('r-nome').textContent;
+  const premio=document.getElementById('r-premio').textContent;
+  const mes=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  navigator.clipboard.writeText(`🎊 Sorteio HJ Store - ${mes}\n\nVencedor: ${nome}\nNúmero: ${ticket}\n${premio}\n\nParabéns! Entre em contato via WhatsApp para resgatar seu prêmio.`);
+  toast('Resultado copiado!');
+}
+
+// AFILIADOS
+async function carregarAfiliados() {
+  const {data} = await db.from('afiliados').select('*').order('created_at',{ascending:false});
+  const el = document.getElementById('lista-aff');
+  if(!data||!data.length){el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);">Nenhum produto ainda.</div>';return;}
+  el.innerHTML = data.map(a=>`
+    <div class="trow" style="grid-template-columns:60px 1fr 100px 80px 80px">
+      <div style="font-size:1.2rem;">${a.emoji||'📦'}</div>
+      <div><div style="font-weight:500;">${a.nome}</div><div style="font-size:11px;color:var(--muted);">${a.categoria||''}</div></div>
+      <div style="font-size:12px;color:var(--muted);">${a.plataforma}</div>
+      <div><span class="badge ${a.ativo?'badge-ok':'badge-rej'}">${a.ativo?'ativo':'inativo'}</span></div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAff('${a.id}',${a.ativo})">${a.ativo?'Pausar':'Ativar'}</button>
+        <button class="btn btn-red btn-sm" onclick="excluirAff('${a.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function openModalAff(){document.getElementById('modal-aff').classList.add('open');}
+function closeModalAff(){document.getElementById('modal-aff').classList.remove('open');}
+
+async function salvarAff() {
+  const nome=document.getElementById('a-nome').value.trim();
+  const link=document.getElementById('a-link').value.trim();
+  if(!nome||!link){toast('Nome e link são obrigatórios.','err');return;}
+  const {error}=await db.from('afiliados').insert({
+    nome, plataforma:document.getElementById('a-plat').value,
+    categoria:document.getElementById('a-cat').value,
+    copy:document.getElementById('a-copy').value,
+    link, emoji:document.getElementById('a-emoji').value||'📦'
+  });
+  if(error){toast('Erro ao salvar.','err');return;}
+  closeModalAff();
+  carregarAfiliados();
+  toast('Produto adicionado!');
+}
+
+async function toggleAff(id,ativo) {
+  await db.from('afiliados').update({ativo:!ativo}).eq('id',id);
+  carregarAfiliados();
+}
+
+async function excluirAff(id) {
+  if(!confirm('Excluir este produto?'))return;
+  await db.from('afiliados').delete().eq('id',id);
+  carregarAfiliados();
+  toast('Produto removido.');
+}
+</script>
+</body>
+</html>
